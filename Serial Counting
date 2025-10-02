@@ -1,0 +1,60 @@
+#include <BfButton.h>
+
+const int btnPin = 3;  // GPIO #3 - Push button on encoder
+const int DT = 4;      // GPIO #4 - DT on encoder (Output B)
+const int CLK = 5;     // GPIO #5 - CLK on encoder (Output A)
+
+BfButton btn(BfButton::STANDALONE_DIGITAL, btnPin, true, LOW);
+
+int counter = 0;
+int angle = 0;
+int aLastState = LOW;
+
+// Button press handling function - now empty, no output
+void pressHandler(BfButton *btn, BfButton::press_pattern_t pattern) {
+  // Intentionally left blank - no Serial output on button presses
+}
+
+void setup() {
+  Serial.begin(9600);
+  delay(100);  // Let serial start properly
+  Serial.println("Starting rotary encoder...");
+
+  pinMode(CLK, INPUT_PULLUP);
+  pinMode(DT, INPUT_PULLUP);
+  pinMode(btnPin, INPUT_PULLUP);
+
+  aLastState = digitalRead(CLK);
+
+  // Button setup
+  btn.onPress(pressHandler)
+     .onDoublePress(pressHandler)  // default timeout
+     .onPressFor(pressHandler, 1000);  // 1 second long press
+}
+
+void loop() {
+  btn.read();
+
+  int currentStateCLK = digitalRead(CLK);
+
+  if (currentStateCLK != aLastState) {
+    // Only count on rising edge of CLK
+    if (currentStateCLK == HIGH) {
+      if (digitalRead(DT) == LOW) {
+        counter++;
+        angle++;
+      } else {
+        counter--;
+        angle--;
+      }
+
+      // Clamp counter between -100 and 100
+      counter = constrain(counter, -100, 100);
+
+      Serial.print("Counter: ");
+      Serial.println(counter);
+    }
+  }
+
+  aLastState = currentStateCLK;
+}
